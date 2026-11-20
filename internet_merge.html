@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#eaf0df">
+<meta name="description" content="브라우저와 AI 아이콘을 합쳐 인터넷을 완성하는 물리 퍼즐 게임">
+<title>인터넷 합치기</title>
+<style>
+:root {
+  color-scheme: light;
+  --ink: #1d2b21;
+  --muted: #4a604d;
+  --paper: #f9faf2;
+  --bg: #edf1e5;
+  --lime: #d4ef77;
+  --green: #e0e9d5;
+  --grid: #dbe5d2;
+  font-family: "Inter", "Pretendard", "Malgun Gothic", system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  min-width: 280px;
+  color: var(--ink);
+  background-color: var(--bg);
+  background-image: radial-gradient(#bdcbb4 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+button { color: inherit; font: inherit; }
+button:focus-visible, canvas:focus-visible { outline: 3px solid #2c6c36; outline-offset: 3px; }
+button { cursor: pointer; }
+.shell { width: min(1116px, calc(100% - 48px)); margin: 0 auto; }
+.top {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--bg);
+  border-bottom: 1px solid #bcc9b5;
+}
+.top-inner { min-height: 63px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: .87rem; font-weight: 900; letter-spacing: .15em; }
+.brand svg { width: 30px; height: 30px; background: var(--ink); color: var(--lime); border-radius: 8px; padding: 5px; }
+.actions { display: flex; align-items: center; gap: 8px; }
+.action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 37px; padding: 0 11px; background: var(--paper);
+  border: 1.5px solid var(--ink); border-radius: 7px; font-size: .79rem; font-weight: 800;
+}
+.action svg { width: 15px; height: 15px; }
+.action:hover { background: var(--lime); }
+.layout { display: grid; grid-template-columns: minmax(0, 246px) minmax(350px, 1fr) minmax(0, 222px); gap: 24px; align-items: start; padding: 29px 0 22px; }
+.left, .right { min-width: 0; }
+.intro { margin: 7px 0 22px; }
+h1 { margin: 0; font-size: clamp(2.6rem, 5vw, 4rem); font-weight: 950; line-height: .96; letter-spacing: -.105em; }
+h1 span { display: block; width: max-content; }
+h1 span:last-child { margin-top: 7px; background: var(--lime); padding: 0 10px 8px 4px; transform: rotate(-3deg); border-radius: 3px; }
+.intro p:last-child { margin: 16px 0 0; font-size: .91rem; line-height: 1.62; color: var(--muted); font-weight: 650; word-break: keep-all; }
+.card { background: var(--paper); border: 2px solid var(--ink); border-radius: 12px; box-shadow: 3px 4px 0 var(--ink); overflow: hidden; }
+.row-title { margin: 0; padding: 10px 13px; border-bottom: 1.5px solid var(--ink); background: var(--green); font-weight: 850; font-size: .87rem; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; margin-top: 12px; }
+.stat { padding: 11px 10px 13px; min-width: 0; }
+.stat + .stat { border-left: 1.5px solid var(--ink); }
+.stat small { display: block; color: var(--muted); font-size: .75rem; font-weight: 800; }
+.stat strong { display: block; margin-top: 4px; font: 800 clamp(1.05rem, 2.35vw, 1.88rem)/1 "IBM Plex Mono", Consolas, monospace; overflow-wrap: anywhere; letter-spacing: -.05em; }
+.next { margin-top: 15px; }
+.next-content { display: flex; min-height: 76px; align-items: center; gap: 12px; padding: 10px 13px; }
+.next-content strong { font-size: .93rem; }
+.icon { width: 30px; height: 30px; display: block; flex: none; }
+#next-icon { width: 49px; height: 49px; }
+.controls { margin: 20px 0 0; display: grid; row-gap: 8px; color: var(--muted); font-size: .78rem; line-height: 1.35; font-weight: 650; }
+.controls div { display: flex; gap: 7px; align-items: center; }
+kbd { display: inline-block; padding: 3px 5px; border: 1px solid #adbea5; border-bottom-width: 2px; border-radius: 4px; background: var(--paper); color: var(--ink); font: 700 .7rem/1.1 "IBM Plex Mono", Consolas, monospace; }
+.cabinet { border: 2px solid var(--ink); border-radius: 15px; box-shadow: 5px 6px 0 var(--ink); background: var(--ink); overflow: hidden; }
+.cabinet-top { display: flex; justify-content: space-between; align-items: center; min-height: 35px; gap: 8px; padding: 0 13px; background: var(--ink); color: #eaf3e4; }
+.lights { display: flex; gap: 5px; }
+.lights i { width: 7px; height: 7px; border-radius: 50%; background: #728675; }
+.lights i:first-child { background: var(--lime); }
+.cabinet-top strong { color: var(--lime); font-size: .75rem; font-weight: 800; }
+.status { font-size: .7rem; font-weight: 750; }
+.board { position: relative; }
+#field {
+  display: block; width: 100%; aspect-ratio: 480 / 556; touch-action: none;
+  cursor: crosshair; outline-offset: -5px;
+  background: var(--paper);
+}
+.cabinet-foot {
+  display: flex; justify-content: center; align-items: center; min-height: 34px;
+  padding: 4px 8px; color: var(--ink); background: var(--lime);
+  text-align: center; font-size: .76rem; font-weight: 850;
+}
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: #1d2b2180; padding: 15px;
+}
+.dialog { padding: 23px; width: min(100%, 300px); border-radius: 11px; border: 2px solid var(--ink); background: var(--paper); box-shadow: 4px 5px 0 var(--ink); text-align: center; }
+.dialog h2 { margin: 0; font-size: 1.55rem; letter-spacing: -.06em; }
+.dialog p { margin: 12px 0 19px; font-size: .9rem; font-weight: 650; }
+.dialog button { background: var(--lime); min-height: 42px; padding: 0 18px; }
+.right .row-title { background: var(--lime); display: flex; align-items: center; gap: 8px; }
+.right .row-title svg { width: 16px; height: 16px; }
+.evolution { list-style: none; padding: 6px 12px; margin: 0; }
+.evolution li { display: flex; align-items: center; gap: 8px; min-height: 37px; border-bottom: 1px solid var(--grid); line-height: 1; }
+.evolution li:last-child { border: 0; }
+.evolution li span { font-size: .82rem; font-weight: 750; }
+.evolution li small { flex: 1; text-align: end; font: 700 .65rem/1 "IBM Plex Mono", Consolas, monospace; color: var(--muted); white-space: nowrap; }
+.evolution li:first-child small, .evolution li:nth-child(2) small { color: #326b36; }
+.recipes { margin-top: 15px; }
+.recipes .row-title { background: var(--green); }
+.recipe { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 5px 2px; }
+.recipe + .recipe { border-top: 1px solid var(--grid); }
+.recipe .icon { width: 27px; height: 27px; }
+.recipe b { font: 800 .75rem/1 Consolas, monospace; }
+.recipe strong { margin-left: 2px; font-size: .74rem; }
+.touch-controls { display: none; }
+@media (max-width: 950px) {
+  .layout { grid-template-columns: minmax(0, 186px) minmax(0, 1fr) minmax(0, 168px); gap: 16px; }
+  h1 { font-size: clamp(2.5rem, 6vw, 3.55rem); }
+  .evolution { padding-inline: 7px; }
+  .evolution li { gap: 5px; }
+  .evolution li span { font-size: .76rem; }
+}
+@media (max-width: 750px) {
+  .shell { width: min(550px, calc(100% - 24px)); }
+  .top { position: static; }
+  .top-inner { min-height: 52px; }
+  .layout { grid-template-columns: minmax(0, 1fr); padding-top: 14px; gap: 17px; }
+  .left { display: grid; grid-template-columns: minmax(0, 1fr) minmax(105px, .7fr); gap: 8px 10px; }
+  .intro { grid-column: 1 / -1; margin: 1px 0 6px; }
+  h1 { font-size: clamp(1.9rem, 8vw, 2.65rem); line-height: 1.1; }
+  h1 span { display: inline; }
+  h1 span:last-child { display: inline-block; padding: 0 7px 2px 4px; margin: 0 0 0 2px; }
+  .intro p:last-child { margin-top: 5px; font-size: .78rem; }
+  .stats, .next { margin: 0; }
+  .stats { align-items: stretch; }
+  .stat { padding: 7px 8px; }
+  .stat strong { font-size: 1.2rem; }
+  .next { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 4px 8px; }
+  .next .row-title { border: 0; padding: 0; font-size: .72rem; background: transparent; }
+  .next-content { min-height: 0; gap: 4px; padding: 0; }
+  .next-content strong { font-size: .69rem; }
+  #next-icon { width: 25px; height: 25px; }
+  .controls { display: none; }
+  .right { display: grid; gap: 10px; }
+  .evolution { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
+  .evolution li:nth-last-child(2) { border: 0; }
+  .recipes { margin-top: 0; }
+}
+@media (max-width: 750px) and (pointer: coarse) {
+  .touch-controls { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 6px; margin-top: 10px; }
+  .touch-controls .action { min-height: 40px; }
+  .touch-controls .action:last-child { background: var(--lime); }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="shell top-inner">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg>
+      WEB MERGE
+    </div>
+    <div class="actions">
+      <button class="action" type="button" id="sound" aria-pressed="false" aria-label="효과음 켜기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true"><path d="M12 4 5 9H2v6h3l7 5Z"/><path id="sound-wave" d="m16 9 6 6m0-6-6 6"/></svg>
+        <span>소리 끔</span>
+      </button>
+      <button class="action" type="button" id="restart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" aria-hidden="true"><path d="M20 7a9 9 0 1 0 1 9M20 3v5h-5"/></svg>새 게임
+      </button>
+    </div>
+  </div>
+</header>
+<main class="shell layout">
+  <aside class="left" aria-label="게임 정보">
+    <div class="intro">
+      <h1><span>인터넷</span> <span>합치기</span></h1>
+      <p>같은 아이콘을 합쳐 인터넷까지 만들어 보세요.</p>
+    </div>
+    <div class="card stats">
+      <div class="stat"><small>현재 점수</small><strong id="score">0</strong></div>
+      <div class="stat"><small>최고 점수</small><strong id="best">0</strong></div>
+    </div>
+    <section class="card next">
+      <h2 class="row-title">다음 아이콘</h2>
+      <div class="next-content"><canvas class="icon" id="next-icon" width="98" height="98" aria-hidden="true"></canvas><strong id="next-name"></strong></div>
+    </section>
+    <div class="controls">
+      <div><kbd>←</kbd><kbd>→</kbd> 위치 조절</div>
+      <div><kbd>Space</kbd> 떨어뜨리기</div>
+      <div>마우스로 조준하고 클릭해도 돼요.</div>
+    </div>
+  </aside>
+  <section aria-label="게임기">
+    <div class="cabinet">
+      <div class="cabinet-top">
+        <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+        <strong id="current-name"></strong>
+        <span class="status" id="status" role="status">플레이 중</span>
+      </div>
+      <div class="board">
+        <canvas id="field" width="960" height="1112" tabindex="0" aria-label="게임판. 좌우 방향키로 조준하고 스페이스로 떨어뜨리세요."></canvas>
+        <div class="overlay" id="overlay" hidden>
+          <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="result-heading">
+            <h2 id="result-heading">게임 오버</h2>
+            <p id="result-score"></p>
+            <button class="action" type="button" id="replay">다시 플레이</button>
+          </div>
+        </div>
+      </div>
+      <div class="cabinet-foot" id="hint" role="status">클릭하거나 탭해서 아이콘을 떨어뜨리세요</div>
+    </div>
+    <div class="touch-controls" aria-label="터치 조작">
+      <button class="action" type="button" id="left" aria-label="왼쪽으로 이동">←</button>
+      <button class="action" type="button" id="right" aria-label="오른쪽으로 이동">→</button>
+      <button class="action" type="button" id="drop">떨어뜨리기</button>
+    </div>
+  </section>
+  <aside class="right" aria-label="합치는 순서">
+    <section class="card">
+      <h2 class="row-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" aria-hidden="true"><path d="M4 20v-6h4v-4h4V6h4V3h4v17Z"/></svg>
+        합체 순서
+      </h2>
+      <ol class="evolution" id="evolution"></ol>
+    </section>
+    <section class="card recipes">
+      <h2 class="row-title">특별한 조합</h2>
+      <div class="recipe" id="edge-recipe" aria-label="엣지 더하기 엣지는 크롬"></div>
+      <div class="recipe" id="ai-recipe" aria-label="제미나이 더하기 제미나이는 GPT"></div>
+    </section>
+  </aside>
+</main>
+<script>
+"use strict";
+
+const pieces = [
+  { name: "사파리",  radius: 17, tint: "#d7f0ff", color: "#1765a4" },
+  { name: "오페라",  radius: 23, tint: "#ffdde5", color: "#ac254c" },
+  { name: "파이어폭스", radius: 29, tint: "#ffead7", color: "#a64c24" },
+  { name: "엣지",    radius: 36, tint: "#d5f7ee", color: "#147460" },
+  { name: "크롬",    radius: 43, tint: "#fff2c8", color: "#96711d" },
+  { name: "깃허브",  radius: 51, tint: "#e7e9ef", color: "#414b65" },
+  { name: "디스코드", radius: 60, tint: "#e4e4ff", color: "#565ab3" },
+  { name: "제미나이", radius: 69, tint: "#e8e5ff", color: "#5b52a4" },
+  { name: "GPT",     radius: 79, tint: "#d8f0e4", color: "#267859" },
+  { name: "인터넷",  radius: 90, tint: "#e3f5af", color: "#4e6d24" }
+];
+
+const width = 480;
+const height = 556;
+const ceiling = 132;
+const floor = 539;
+const wall = 13;
+const frameStep = 1 / 120;
+// The solver can stop pieces at this distance, so merges use the same margin.
+const contactMargin = .65;
+const field = document.querySelector("#field");
+const ctx = field.getContext("2d");
+const scoreText = document.querySelector("#score");
+const bestText = document.querySelector("#best");
+const statusText = document.querySelector("#status");
+const hint = document.querySelector("#hint");
+const dropHint = hint.textContent;
+const overlay = document.querySelector("#overlay");
+const replay = document.querySelector("#replay");
+const sound = document.querySelector("#sound");
+const keyboard = new Set();
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const numberFormat = new Intl.NumberFormat("ko-KR");
+
+let bodies = [];
+let nextBodyId = 0;
+const contactCache = new Map();
+let effects = [];
+let bag = [];
+let score = 0;
+let best = readBest();
+let aim = width / 2;
+let current;
+let next;
+let dropDelay = 0;
+let overflow = 0;
+let completionNotice = 0;
+let ended = false;
+let muted = true;
+let audioContext;
+let dragging = null;
+
+function readBest() {
+  try {
+    return Math.max(0, Number(localStorage.getItem("web-merge-best")) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function drawMark(c, level) {
+  c.lineJoin = "round";
+  c.lineCap = "round";
+  switch (level) {
+    case 0: {
+      const blue = c.createLinearGradient(0, -1, 0, 1);
+      blue.addColorStop(0, "#32c3ff");
+      blue.addColorStop(1, "#1760ce");
+      circle(c, 0, 0, .96, blue);
+      c.strokeStyle = "#d5f9ff";
+      c.lineWidth = .055;
+      c.beginPath(); c.arc(0, 0, .82, 0, Math.PI * 2); c.stroke();
+      for (let i = 0; i < 12; i++) {
+        c.save(); c.rotate(i * Math.PI / 6);
+        c.beginPath(); c.moveTo(0, -.76); c.lineTo(0, -.67); c.stroke(); c.restore();
+      }
+      shape(c, "#fff", [[-.47,.55],[-.11,-.12],[.14,.13]]);
+      shape(c, "#ff526b", [[.51,-.55],[-.11,-.12],[.14,.13]]);
+      break;
+    }
+    case 1: {
+      const red = c.createLinearGradient(-.6, -.7, .8, .7);
+      red.addColorStop(0, "#ff728d");
+      red.addColorStop(.45, "#f02552");
+      red.addColorStop(1, "#b50038");
+      c.strokeStyle = red;
+      c.lineWidth = .48;
+      c.beginPath(); c.ellipse(0, 0, .59, .76, 0, 0, Math.PI * 2); c.stroke();
+      break;
+    }
+    case 2: {
+      circle(c, 0, .05, .83, "#5940a7");
+      const fire = c.createLinearGradient(-.7, .75, .65, -.65);
+      fire.addColorStop(0, "#f24447");
+      fire.addColorStop(.58, "#ff8427");
+      fire.addColorStop(1, "#ffcf42");
+      c.fillStyle = fire;
+      c.beginPath(); c.moveTo(-.75,-.15);
+      c.quadraticCurveTo(-.95,-.37,-.64,-.72);
+      c.quadraticCurveTo(-.64,-.48,-.36,-.44);
+      c.quadraticCurveTo(-.29,-.63,.03,-.71);
+      c.quadraticCurveTo(-.04,-.54,-.02,-.43);
+      c.quadraticCurveTo(.28,-.39,.49,-.13);
+      c.quadraticCurveTo(.18,-.18,-.04,.02);
+      c.quadraticCurveTo(-.18,.2,-.01,.39);
+      c.quadraticCurveTo(.40,.55,.63,.09);
+      c.quadraticCurveTo(.84,-.25,.57,-.61);
+      c.quadraticCurveTo(1,-.45,.90,.26);
+      c.quadraticCurveTo(.79,.82,.19,.9);
+      c.quadraticCurveTo(-.72,.98,-.84,.35);
+      c.quadraticCurveTo(-.91,.03,-.75,-.15);
+      c.fill();
+      break;
+    }
+    case 3: {
+      const blue = c.createLinearGradient(-.8,-.65,.8,.75);
+      blue.addColorStop(0,"#1765f2"); blue.addColorStop(.55,"#13b9df"); blue.addColorStop(1,"#0a776d");
+      c.fillStyle = blue; c.beginPath(); c.moveTo(-.96,.04);
+      c.bezierCurveTo(-.98,-.55,-.58,-.94,-.02,-.94); c.bezierCurveTo(.50,-.94,.87,-.67,.92,-.23);
+      c.bezierCurveTo(.96,.05,.63,.27,.35,.16); c.bezierCurveTo(.29,-.11,.09,-.16,-.21,-.11);
+      c.bezierCurveTo(-.53,-.06,-.60,.23,-.46,.46); c.bezierCurveTo(-.82,.44,-.92,.24,-.96,.04); c.fill();
+      const teal = c.createLinearGradient(-.75,.7,.75,0);
+      teal.addColorStop(0,"#087cbd"); teal.addColorStop(.5,"#0fbf99"); teal.addColorStop(1,"#5bdf81");
+      c.fillStyle = teal; c.beginPath(); c.moveTo(-.96,.04);
+      c.bezierCurveTo(-.79,-.31,-.38,-.34,-.21,-.11); c.bezierCurveTo(-.48,-.11,-.50,.35,-.18,.48);
+      c.bezierCurveTo(.10,.62,.50,.53,.74,.31); c.bezierCurveTo(.80,.78,.22,1,-.28,.88);
+      c.bezierCurveTo(-.71,.81,-.98,.51,-.96,.04); c.fill();
+      break;
+    }
+    case 4: {
+      const segments = [
+        { start: Math.PI * 1.16, fill: "#e94235" },
+        { start: Math.PI * 1.16 + 2 * Math.PI / 3, fill: "#f7c447" },
+        { start: Math.PI * 1.16 + 4 * Math.PI / 3, fill: "#32a55f" }
+      ];
+      for (const segment of segments) {
+        c.fillStyle = segment.fill; c.beginPath();
+        c.arc(0,0,.96,segment.start,segment.start + 2*Math.PI/3);
+        c.lineTo(0,0); c.fill();
+      }
+      circle(c, 0, 0, .44, "#fff");
+      circle(c, 0, 0, .35, "#357dea");
+      break;
+    }
+    case 5:
+      c.fillStyle = "#292e39";
+      c.beginPath(); c.moveTo(-.64,-.24); c.lineTo(-.72,-.81);
+      c.quadraticCurveTo(-.51,-.85,-.29,-.65); c.quadraticCurveTo(0,-.76,.29,-.65);
+      c.quadraticCurveTo(.51,-.85,.72,-.81); c.lineTo(.64,-.24);
+      c.quadraticCurveTo(.98,.28,.43,.55); c.lineTo(.46,.83); c.quadraticCurveTo(0,.98,-.46,.83);
+      c.lineTo(-.43,.55); c.quadraticCurveTo(-.98,.28,-.64,-.24); c.fill();
+      circle(c,-.24,.05,.085,"#f5f6fe"); circle(c,.24,.05,.085,"#f5f6fe");
+      break;
+    case 6:
+      c.fillStyle = "#5965ef";
+      c.beginPath(); c.moveTo(-.62,-.57); c.quadraticCurveTo(-.36,-.74,-.17,-.65); c.lineTo(-.13,-.53);
+      c.quadraticCurveTo(0,-.56,.13,-.53); c.lineTo(.17,-.65); c.quadraticCurveTo(.36,-.74,.62,-.57);
+      c.quadraticCurveTo(.89,-.21,.92,.42); c.quadraticCurveTo(.64,.68,.40,.67); c.lineTo(.31,.48);
+      c.quadraticCurveTo(0,.61,-.31,.48); c.lineTo(-.40,.67); c.quadraticCurveTo(-.64,.68,-.92,.42);
+      c.quadraticCurveTo(-.89,-.21,-.62,-.57); c.fill();
+      circle(c,-.28,.08,.14,"#fff"); circle(c,.28,.08,.14,"#fff"); break;
+    case 7: {
+      const gem = c.createLinearGradient(-.65,.55,.68,-.66);
+      gem.addColorStop(0,"#3788f4"); gem.addColorStop(.48,"#7759ed"); gem.addColorStop(1,"#e980ac");
+      c.fillStyle = gem; c.beginPath(); c.moveTo(0,-.99);
+      c.quadraticCurveTo(.24,-.22,.99,0); c.quadraticCurveTo(.24,.22,0,.99);
+      c.quadraticCurveTo(-.24,.22,-.99,0); c.quadraticCurveTo(-.24,-.22,0,-.99); c.fill();
+      break;
+    }
+    case 8:
+      circle(c,0,0,.99,"#217960");
+      c.strokeStyle = "#fff"; c.lineWidth = .10;
+      for (let i = 0; i < 6; i++) {
+        c.save(); c.rotate(i * Math.PI / 3); c.beginPath();
+        c.moveTo(-.12,.20); c.lineTo(-.12,-.35); c.quadraticCurveTo(-.12,-.68,.18,-.68);
+        c.quadraticCurveTo(.46,-.68,.51,-.38); c.lineTo(.12,-.15); c.stroke(); c.restore();
+      }
+      break;
+    case 9:
+      circle(c,0,0,.96,"#273a23");
+      c.strokeStyle = "#dcfa85"; c.lineWidth = .10;
+      c.beginPath(); c.arc(0,0,.76,0,Math.PI*2); c.stroke();
+      c.beginPath(); c.ellipse(0,0,.34,.76,0,0,Math.PI*2); c.stroke();
+      c.beginPath(); c.moveTo(-.76,0); c.lineTo(.76,0);
+      c.moveTo(-.62,-.39); c.quadraticCurveTo(0,-.18,.62,-.39);
+      c.moveTo(-.62,.39); c.quadraticCurveTo(0,.18,.62,.39); c.stroke();
+      break;
+  }
+}
+
+function circle(c, x, y, radius, fill) {
+  c.fillStyle = fill;
+  c.beginPath(); c.arc(x, y, radius, 0, Math.PI * 2); c.fill();
+}
+
+function shape(c, fill, points) {
+  c.fillStyle = fill; c.beginPath(); c.moveTo(...points[0]);
+  for (const point of points.slice(1)) c.lineTo(...point);
+  c.closePath(); c.fill();
+}
+
+function paintPiece(c, x, y, radius, level) {
+  const { color, tint } = pieces[level];
+  c.save(); c.translate(x, y); c.scale(radius, radius);
+  circle(c, 0, 0, 1, color);
+  circle(c, 0, 0, .92, tint);
+  c.strokeStyle = "#ffffffaa"; c.lineWidth = .075;
+  c.beginPath(); c.arc(0, 0, .81, 3.62, 4.9); c.stroke();
+  c.scale(.69, .69); drawMark(c, level); c.restore();
+}
+
+const textures = pieces.map((_, level) => {
+  const sprite = document.createElement("canvas");
+  sprite.width = sprite.height = 224;
+  paintPiece(sprite.getContext("2d"), 112, 112, 110, level);
+  return sprite;
+});
+
+function iconInto(canvas, level) {
+  const size = canvas.width;
+  const iconContext = canvas.getContext("2d");
+  iconContext.clearRect(0, 0, size, size);
+  iconContext.drawImage(textures[level], 0, 0, size, size);
+}
+
+function miniIcon(level) {
+  const icon = document.createElement("canvas");
+  icon.width = icon.height = 60;
+  icon.className = "icon";
+  icon.setAttribute("aria-hidden", "true");
+  iconInto(icon, level);
+  return icon;
+}
+
+const steps = pieces.map(({ name }, level) => {
+  const li = document.createElement("li");
+  const title = document.createElement("span");
+  const tag = document.createElement("small");
+  title.textContent = name;
+  tag.textContent = level < 4 ? "등장" : level === pieces.length - 1 ? "목표" : "";
+  li.append(miniIcon(level), title, tag);
+  document.querySelector("#evolution").append(li);
+  return li;
+});
+
+function setRecipe(id, from, to) {
+  const label = document.createElement("strong");
+  label.textContent = pieces[to].name;
+  const plus = document.createElement("b");
+  plus.textContent = "+";
+  const equals = document.createElement("b");
+  equals.textContent = "=";
+  document.querySelector(id).append(miniIcon(from), plus, miniIcon(from), equals, miniIcon(to), label);
+}
+
+setRecipe("#edge-recipe", 3, 4);
+setRecipe("#ai-recipe", 7, 8);
+
+function getPiece() {
+  if (bag.length === 0) {
+    bag = [0, 0, 1, 1, 2, 2, 3, 3];
+    for (let last = bag.length - 1; last > 0; last--) {
+      const index = Math.floor(Math.random() * (last + 1));
+      [bag[last], bag[index]] = [bag[index], bag[last]];
+    }
+  }
+  return bag.pop();
+}
+
+function showPieces() {
+  document.querySelector("#current-name").textContent = "현재 " + pieces[current].name;
+  iconInto(document.querySelector("#next-icon"), next);
+  document.querySelector("#next-name").textContent = pieces[next].name;
+}
+
+function newGame(focus = false) {
+  bodies = [];
+  nextBodyId = 0;
+  contactCache.clear();
+  effects = [];
+  bag = [];
+  score = 0;
+  aim = width / 2;
+  current = 3;
+  next = 3;
+  dropDelay = 0;
+  overflow = 0;
+  completionNotice = 0;
+  ended = false;
+  dragging = null;
+  keyboard.clear();
+  for (const step of steps) {
+    for (const animation of step.getAnimations()) animation.cancel();
+  }
+  scoreText.textContent = "0";
+  bestText.textContent = numberFormat.format(best);
+  overlay.hidden = true;
+  statusText.textContent = "플레이 중";
+  hint.textContent = dropHint;
+  showPieces();
+  if (focus) field.focus({ preventScroll: true });
+}
+
+function makeBody(level, x, y, vx = 0, vy = 0, age = 0) {
+  const r = pieces[level].radius;
+  const inverseMass = 1 / (r * r);
+  return {
+    id: nextBodyId++, level, x, y, r, vx, vy, age, angle: 0, spin: 0,
+    inverseMass, inverseInertia: 2 * inverseMass / (r * r)
+  };
+}
+
+function clampAim(x) {
+  const r = pieces[current].radius;
+  return Math.max(wall + r, Math.min(width - wall - r, x));
+}
+
+function drop() {
+  if (ended || dropDelay > 0) return;
+  bodies.push(makeBody(current, clampAim(aim), 52, 0, 32));
+  dropDelay = .42;
+  playNote(235, .11);
+  current = next;
+  aim = clampAim(aim);
+  next = getPiece();
+  showPieces();
+}
+
+function playNote(frequency, duration) {
+  if (muted || !audioContext || audioContext.state !== "running") return;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const time = audioContext.currentTime;
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(frequency, time);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency * .71, time + duration);
+  gain.gain.setValueAtTime(.065, time);
+  gain.gain.exponentialRampToValueAtTime(.001, time + duration);
+  oscillator.connect(gain).connect(audioContext.destination);
+  oscillator.start(time);
+  oscillator.stop(time + duration);
+}
+
+sound.addEventListener("click", async () => {
+  if (!muted) {
+    muted = true;
+  } else {
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      audioContext ||= new Audio();
+      await audioContext.resume();
+      muted = false;
+      playNote(430, .13);
+    } catch {
+      muted = true;
+    }
+  }
+  sound.setAttribute("aria-pressed", String(!muted));
+  sound.setAttribute("aria-label", muted ? "효과음 켜기" : "효과음 끄기");
+  sound.querySelector("span").textContent = muted ? "소리 끔" : "소리 켬";
+  document.querySelector("#sound-wave").setAttribute("d", muted ? "m16 9 6 6m0-6-6 6" : "M16 9a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12");
+});
+
+function combine(a, b, i, j) {
+  const level = a.level + 1;
+  const x = (a.x + b.x) / 2;
+  const y = (a.y + b.y) / 2;
+  const vx = (a.vx + b.vx) / 2;
+  const vy = (a.vy + b.vy) / 2;
+  const joined = makeBody(level, x, y, vx, vy, Math.max(a.age, b.age));
+  const offsetX = a.x - x;
+  const offsetY = a.y - y;
+  const radiusSquared = a.r * a.r;
+  // Keep the motion of the joined pair without accelerating it as its size changes.
+  const orbit = offsetX * (a.vy - b.vy) - offsetY * (a.vx - b.vx);
+  const inertia = radiusSquared + 2 * (offsetX * offsetX + offsetY * offsetY);
+  joined.spin = ((a.spin + b.spin) * radiusSquared / 2 + orbit) / inertia;
+  joined.angle = Math.abs(a.spin) > Math.abs(b.spin) ? a.angle : b.angle;
+  keepInBoard(joined);
+  bodies.splice(j, 1);
+  bodies[i] = joined;
+  const points = (level + 1) * (level + 2) / 2;
+  score += points;
+  scoreText.textContent = numberFormat.format(score);
+  if (score > best) {
+    best = score;
+    bestText.textContent = numberFormat.format(best);
+    try { localStorage.setItem("web-merge-best", String(best)); } catch {}
+  }
+  effects.push({ x: joined.x, y: joined.y, r: joined.r, level, age: 0, points });
+  if (!reducedMotion) {
+    steps[level].animate(
+      [{ backgroundColor: "#d4ef77" }, { backgroundColor: "transparent" }],
+      { duration: 580, easing: "ease-out" }
+    );
+  }
+  playNote(480 + level * 46, .18);
+  if (level === pieces.length - 1) {
+    completionNotice = 2.5;
+    hint.textContent = "인터넷 완성! 계속 플레이할 수 있어요.";
+  }
+}
+
+function keepInBoard(body) {
+  body.x = Math.max(wall + body.r, Math.min(width - wall - body.r, body.x));
+  body.y = Math.min(floor - body.r, body.y);
+}
+
+function mergeTouchingPieces() {
+  // Rescan after each merge so a newly created tile can chain on the current step.
+  for (let i = 0; i < bodies.length - 1; i++) {
+    const a = bodies[i];
+    for (let j = i + 1; j < bodies.length; j++) {
+      const b = bodies[j];
+      if (a.level !== b.level || a.level === pieces.length - 1) continue;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const reach = a.r + b.r + contactMargin;
+      if (dx * dx + dy * dy > reach * reach) continue;
+      combine(a, b, i, j);
+      i = -1;
+      break;
+    }
+  }
+}
+
+const boundaries = [
+  { name: "floor", nx: 0, ny: 1, limit: floor, bounce: .24, friction: .54 },
+  { name: "left", nx: -1, ny: 0, limit: -wall, bounce: .32, friction: .31 },
+  { name: "right", nx: 1, ny: 0, limit: width - wall, bounce: .32, friction: .31 }
+];
+
+function makeContact(key, a, b, nx, ny, boundary) {
+  const inverseMass = a.inverseMass + (b?.inverseMass ?? 0);
+  const inverseTangentMass = inverseMass + a.r * a.r * a.inverseInertia
+    + (b ? b.r * b.r * b.inverseInertia : 0);
+  const relativeX = (b?.vx ?? 0) - a.vx;
+  const relativeY = (b?.vy ?? 0) - a.vy;
+  const speed = relativeX * nx + relativeY * ny;
+  // A small approach speed is a resting contact, not a new bounce.
+  const bounce = speed < -86 ? -speed * (boundary?.bounce ?? .17) : 0;
+  const previous = contactCache.get(key);
+  const reuse = !bounce && previous && previous.nx * nx + previous.ny * ny > .95;
+
+  return {
+    key, a, b, nx, ny, boundary, inverseMass, inverseTangentMass, bounce,
+    friction: boundary?.friction ?? .41,
+    normal: reuse ? previous.normal * .9 : 0,
+    tangent: reuse ? previous.tangent * .9 : 0
+  };
+}
+
+function collectContacts() {
+  const contacts = [];
+  for (let i = 0; i < bodies.length; i++) {
+    const a = bodies[i];
+    for (const boundary of boundaries) {
+      const { nx, ny, limit, name } = boundary;
+      if (a.x * nx + a.y * ny + a.r >= limit - contactMargin) {
+        contacts.push(makeContact(a.id + ":" + name, a, null, nx, ny, boundary));
+      }
+    }
+    for (let j = i + 1; j < bodies.length; j++) {
+      const b = bodies[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const reach = a.r + b.r + contactMargin;
+      const squared = dx * dx + dy * dy;
+      if (squared > reach * reach) continue;
+      const distance = Math.sqrt(squared);
+      const nx = distance > 0 ? dx / distance : 1;
+      const ny = distance > 0 ? dy / distance : 0;
+      contacts.push(makeContact(a.id + ":" + b.id, a, b, nx, ny, null));
+    }
+  }
+  return contacts;
+}
+
+function applyImpulse(contact, normal, tangent) {
+  const { a, b, nx, ny } = contact;
+  const impulseX = nx * normal - ny * tangent;
+  const impulseY = ny * normal + nx * tangent;
+  a.vx -= impulseX * a.inverseMass;
+  a.vy -= impulseY * a.inverseMass;
+  a.spin -= tangent * a.r * a.inverseInertia;
+  if (b) {
+    b.vx += impulseX * b.inverseMass;
+    b.vy += impulseY * b.inverseMass;
+    b.spin -= tangent * b.r * b.inverseInertia;
+  }
+}
+
+function solveVelocity(contact) {
+  const { a, b, nx, ny, inverseMass, inverseTangentMass, bounce, friction } = contact;
+  const relativeX = (b?.vx ?? 0) - a.vx;
+  const relativeY = (b?.vy ?? 0) - a.vy;
+  const speed = relativeX * nx + relativeY * ny;
+  const previousNormal = contact.normal;
+  contact.normal = Math.max(0, previousNormal + (bounce - speed) / inverseMass);
+  // Surface speed includes the spin of both discs at their contact point.
+  const slide = -relativeX * ny + relativeY * nx - a.spin * a.r - (b ? b.spin * b.r : 0);
+  const maxFriction = contact.normal * friction;
+  const previousTangent = contact.tangent;
+  contact.tangent = Math.max(-maxFriction, Math.min(maxFriction, previousTangent - slide / inverseTangentMass));
+  applyImpulse(contact, contact.normal - previousNormal, contact.tangent - previousTangent);
+}
+
+function resolveOverlaps() {
+  for (let pass = 0; pass < 12; pass++) {
+    for (const body of bodies) keepInBoard(body);
+    let corrected = false;
+    for (let i = 0; i < bodies.length - 1; i++) {
+      const a = bodies[i];
+      for (let j = i + 1; j < bodies.length; j++) {
+        const b = bodies[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const distanceSquared = dx * dx + dy * dy;
+        const minDistance = a.r + b.r - .08;
+        if (distanceSquared >= minDistance * minDistance) continue;
+
+        const distance = Math.sqrt(distanceSquared);
+        const nx = distance > 0 ? dx / distance : 1;
+        const ny = distance > 0 ? dy / distance : 0;
+        const correction = (minDistance - distance) * .88 / (a.inverseMass + b.inverseMass);
+        a.x -= nx * correction * a.inverseMass;
+        a.y -= ny * correction * a.inverseMass;
+        b.x += nx * correction * b.inverseMass;
+        b.y += ny * correction * b.inverseMass;
+        corrected = true;
+      }
+    }
+    // A correction may press a piece into a neighbor absent from the velocity contacts.
+    if (!corrected) return;
+  }
+  for (const body of bodies) keepInBoard(body);
+}
+
+function stepPhysics(dt) {
+  for (const body of bodies) {
+    body.age += dt;
+    body.vx *= .999;
+    body.vy = Math.min(860, body.vy + 1220 * dt);
+    body.spin *= .998;
+    body.x += body.vx * dt;
+    body.y += body.vy * dt;
+    body.angle = (body.angle + body.spin * dt) % (Math.PI * 2);
+  }
+
+  mergeTouchingPieces();
+  const contacts = collectContacts();
+  contactCache.clear();
+  for (const contact of contacts) applyImpulse(contact, contact.normal, contact.tangent);
+  for (let pass = 0; pass < 10; pass++) {
+    for (const contact of contacts) solveVelocity(contact);
+  }
+  resolveOverlaps();
+  for (const contact of contacts) {
+    contactCache.set(contact.key, contact);
+    const { a, boundary, normal } = contact;
+    if (boundary?.name !== "floor" || normal <= 0 || contact.bounce > 0) continue;
+    const rollingSpeed = Math.max(Math.abs(a.vx), Math.abs(a.spin * a.r), .01);
+    const drag = Math.max(0, 1 - 46 * dt / rollingSpeed);
+    a.vx *= drag;
+    a.spin *= drag;
+  }
+  // Positional corrections can bring new neighbors together in a dense pile.
+  mergeTouchingPieces();
+}
+
+function update(dt) {
+  if (ended) return;
+  const direction = Number(keyboard.has("ArrowRight")) - Number(keyboard.has("ArrowLeft"));
+  aim = clampAim(aim + direction * dt * 335);
+  dropDelay = Math.max(0, dropDelay - dt);
+  if (completionNotice > 0) {
+    completionNotice = Math.max(0, completionNotice - dt);
+    if (completionNotice === 0) hint.textContent = dropHint;
+  }
+
+  stepPhysics(dt);
+  for (const effect of effects) effect.age += dt;
+  effects = effects.filter(effect => effect.age < .65);
+
+  const blocked = bodies.some(body => body.age > .65 && body.y - body.r < ceiling && body.vy < 80);
+  overflow = blocked ? overflow + dt : Math.max(0, overflow - dt * 2);
+  const warning = blocked && overflow > .22;
+  const status = warning ? "위험선 초과" : "플레이 중";
+  if (statusText.textContent !== status) statusText.textContent = status;
+  if (overflow >= 2.1) endGame();
+}
+
+function endGame() {
+  ended = true;
+  completionNotice = 0;
+  hint.textContent = dropHint;
+  keyboard.clear();
+  statusText.textContent = "게임 오버";
+  document.querySelector("#result-score").textContent = "최종 점수 " + numberFormat.format(score) + "점";
+  overlay.hidden = false;
+  replay.focus({ preventScroll: true });
+}
+
+function draw() {
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  ctx.fillStyle = "#f8faf2";
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = "#e3eada";
+  for (let y = 17; y < floor; y += 17) {
+    for (let x = 17; x < width; x += 17) ctx.fillRect(x, y, 1.5, 1.5);
+  }
+
+  ctx.fillStyle = "#dbe6d4";
+  ctx.fillRect(0, floor, width, height - floor);
+  ctx.strokeStyle = "#344634";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(wall, 104); ctx.lineTo(wall, floor);
+  ctx.lineTo(width - wall, floor); ctx.lineTo(width - wall, 104); ctx.stroke();
+
+  const danger = overflow > .22;
+  ctx.setLineDash([5, 5]);
+  ctx.strokeStyle = danger ? "#b73342" : "#c77d7b";
+  ctx.lineWidth = danger ? 2 : 1.4;
+  ctx.beginPath(); ctx.moveTo(wall + 1, ceiling); ctx.lineTo(width - wall - 1, ceiling); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = danger ? "#a62635" : "#86494b";
+  ctx.font = "750 12px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("위험선", wall + 9, ceiling - 8);
+
+  if (!ended && dropDelay <= 0) {
+    const x = clampAim(aim);
+    const r = pieces[current].radius;
+    ctx.setLineDash([4, 6]);
+    ctx.strokeStyle = "#829d79";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, 54 + r); ctx.lineTo(x, floor); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.drawImage(textures[current], x-r, 52-r, r*2, r*2);
+  }
+
+  for (const { level, x, y, r, angle } of bodies) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.drawImage(textures[level], -r, -r, r * 2, r * 2);
+    ctx.restore();
+  }
+
+  if (reducedMotion) return;
+  for (const effect of effects) {
+    const progress = effect.age / .65;
+    ctx.globalAlpha = 1 - progress;
+    ctx.strokeStyle = pieces[effect.level].color;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(effect.x, effect.y, effect.r + 4 + progress * 24, 0, Math.PI * 2); ctx.stroke();
+    ctx.textAlign = "center";
+    ctx.font = "900 19px Consolas, monospace";
+    ctx.fillStyle = "#243a23";
+    ctx.fillText("+" + effect.points, effect.x, effect.y - effect.r - 8 - progress * 22);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function moveToPointer(event) {
+  const bounds = field.getBoundingClientRect();
+  aim = clampAim((event.clientX - bounds.left) / bounds.width * width);
+}
+
+field.addEventListener("pointerdown", event => {
+  if (ended || dragging !== null || event.button !== 0) return;
+  dragging = event.pointerId;
+  field.setPointerCapture(event.pointerId);
+  moveToPointer(event);
+});
+field.addEventListener("pointermove", event => {
+  if (ended) return;
+  if (event.pointerId === dragging || (dragging === null && event.pointerType === "mouse")) moveToPointer(event);
+});
+field.addEventListener("pointerup", event => {
+  if (event.pointerId !== dragging) return;
+  dragging = null;
+  moveToPointer(event);
+  drop();
+});
+field.addEventListener("lostpointercapture", () => { dragging = null; });
+field.addEventListener("pointercancel", () => { dragging = null; });
+
+window.addEventListener("keydown", event => {
+  if (ended || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (event.code === "Space" && event.target instanceof HTMLButtonElement) return;
+  if (event.code === "Space" || event.code === "ArrowDown") {
+    event.preventDefault();
+    if (!event.repeat) drop();
+  } else if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
+    event.preventDefault();
+    keyboard.add(event.code);
+  }
+});
+window.addEventListener("keyup", event => keyboard.delete(event.code));
+window.addEventListener("blur", () => keyboard.clear());
+document.querySelector("#restart").addEventListener("click", () => newGame(true));
+replay.addEventListener("click", () => newGame(true));
+document.querySelector("#drop").addEventListener("click", drop);
+document.querySelector("#left").addEventListener("click", () => { if (!ended) aim = clampAim(aim - 24); });
+document.querySelector("#right").addEventListener("click", () => { if (!ended) aim = clampAim(aim + 24); });
+
+let lastFrame;
+let carry = 0;
+function frame(time) {
+  if (lastFrame !== undefined) carry += Math.min((time - lastFrame) / 1000, .08);
+  lastFrame = time;
+  while (carry >= frameStep) {
+    update(frameStep);
+    carry -= frameStep;
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+
+newGame();
+draw();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
